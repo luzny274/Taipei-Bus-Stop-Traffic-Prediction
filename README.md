@@ -22,7 +22,7 @@ git commit -m "name-of-the-commit-can-be-anything"
 git push
 ```
 
-To pull other people changes from the repository:
+To pull other people's changes from the repository:
 ```bash
 git pull
 ```
