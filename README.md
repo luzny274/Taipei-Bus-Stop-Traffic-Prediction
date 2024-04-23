@@ -10,15 +10,18 @@ Understanding and predicting bus stop traffic in Taipei is crucial for improving
 To get started with this project, clone the repository:
 ```bash
 git clone https://github.com/luzny274/Taipei-Bus-Stop-Traffic-Prediction.git
+```
 
 To push your changes to the repository:
 ```bash
 git add -A
 git commit -m "name-of-the-commit-can-be-anything"
 git push
+```
 
 To pull other people changes:
 ```bash
 git pull
+```
 
 In order to avoid conflicts, everyone should work in their own folder
