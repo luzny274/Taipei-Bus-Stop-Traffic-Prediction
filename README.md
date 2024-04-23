@@ -24,4 +24,4 @@ To pull other people changes:
 git pull
 ```
 
-In order to avoid conflicts, everyone should work in their own folder
+In order to avoid conflicts, everyone should work in their own folder.
