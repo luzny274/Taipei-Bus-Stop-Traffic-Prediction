@@ -10,6 +10,4 @@ Understanding and predicting bus stop traffic in Taipei is crucial for improving
 To get started with this project, clone the repository and install the required dependencies.
 
 ```bash
-git clone https://github.com/your-username/taipei-bus-stop-crowd-prediction.git
-cd taipei-bus-stop-crowd-prediction
-pip install -r requirements.txt
+git clone https://github.com/luzny274/Taipei-Bus-Stop-Traffic-Prediction.git
