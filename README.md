@@ -8,6 +8,7 @@ Understanding and predicting bus stop traffic in Taipei is crucial for improving
 
 ## Getting Started
 Remember to not use "Ctrl+V" in Git Bash! You can paste commands there using a right mouse click or "Ctrl+Shift+Insert".
+
 To get started with this project, clone the repository and move inside its folder:
 ```bash
 git clone https://github.com/luzny274/Taipei-Bus-Stop-Traffic-Prediction.git
