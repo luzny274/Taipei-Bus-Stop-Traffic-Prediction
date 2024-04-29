@@ -4,7 +4,7 @@
 
 # read the data (Raw Data1)
 library("data.table")
-data_info <- read.csv("MRT/臺北捷運每日分時各站OD流量統計資料.csv")
+data_info <- read.csv("RawData1/臺北捷運每日分時各站OD流量統計資料.csv")
 head(data_info)
 flow_ym <- data_info[which(data_info[,2] == "202403"):which(data_info[,2] == "202403"),][,2]
 #flow_url <- data_info[which(data_info[,2] == "202403"):which(data_info[,2] == "202403"),]$URL
@@ -16,7 +16,7 @@ flow_data <- NULL
 for(ym in flow_ym){
   #for (url in flow_url){
   
-  flow_csv <- fread(paste0("MRT/臺北捷運每日分時各站OD流量統計資料_",ym,".csv"))
+  flow_csv <- fread(paste0("RawData1/臺北捷運每日分時各站OD流量統計資料_",ym,".csv"))
   # flow_csv <- fread(url)
   head(flow_csv)
   dim(flow_csv)
@@ -82,7 +82,7 @@ write.csv(flow_data,"NewData/MetroFlow.csv", row.names = F)
 ## 2.MetroDist ----------------------------------------------------------------------------------------------
 
 # read the data (Raw Data2)
-station_csv <- read.csv("MRT/northern-taiwan.csv")
+station_csv <- read.csv("RawData2/northern-taiwan.csv")
 head(station_csv)
 colnames(station_csv)
 
@@ -111,7 +111,7 @@ dim(station_data) # 7, 3 (2 vars) (only 7 stations)
 ## 3.BusCnt (option1) ----------------------------------------------------------------------------------------
 
 # read the data (Raw Data3)
-bus_csv <- read.csv("MRT/車站出口公車資訊.csv", fileEncoding = "big5")
+bus_csv <- read.csv("RawData3/車站出口公車資訊.csv", fileEncoding = "big5")
 head(bus_csv)
 dim(bus_csv)
 
@@ -142,7 +142,7 @@ bus_data <- bus_info[bus_info$metro_station == "中山" |
                      bus_info$metro_station == "士林" |
                      bus_info$metro_station == "北投" , ]
 
-# final flow data
+# final bus data
 head(bus_data)
 dim(bus_data) # 7, 2 (1 var) (only 7 stations)
 
@@ -162,7 +162,7 @@ write.csv(bus_data,"NewData/BusCnt.csv", row.names = F)
 bike_ym <- c("202311")
 ym <- bike_ym[1]
 
-bike_data <- NULL
+bike_flow_data <- NULL
 #for(ym in bike_ym){
   #for (url in bike_url){
   
@@ -204,17 +204,17 @@ bike_data <- NULL
   tail(bike_month)
   dim(bike_month)
   
-  bike_data <- rbind(bike_data, bike_month)
+  bike_flow_data <- rbind(bike_flow_data, bike_month)
   
 #}
 
 # final bike flow data
-head(bike_data)
-tail(bike_data)
-dim(bike_data) #  # 749485, 3 (only 2023/11, all stations)
+head(bike_flow_data)
+tail(bike_flow_data)
+dim(bike_flow_data) #  # 749485, 3 (only 2023/11, all stations)
 
 # write the data (Revised Data6)
-write.csv(bike_data,"RevisedData6/202311_youbike.csv", row.names = F)
+write.csv(bike_flow_data,"RevisedData6/202311_youbike.csv", row.names = F)
 
 ## 4.YoubikeCnt ----------------------------------------------------------------------------------------------
 
@@ -226,13 +226,24 @@ write.csv(bike_data,"RevisedData6/202311_youbike.csv", row.names = F)
 
 ## 6.SchoolCnt -----------------------------------------------------------------------------------------------
 
-# not finished yet
+# create the data: 中山: 4; 松山: 2; 大同（大橋頭）: 8; 古亭: 4; 萬華（北門）:2; 士林: 3; 陽明（北投）: 4
+metro_station <- c("中山","北投","北門","古亭","士林","大橋頭","松山")
+school_cnt <- c(4,4,2,4,3,8,2)
+school_data <- data.frame(metro_station, school_cnt)
+
+# final school data
+head(school_data)
+tail(school_data)
+dim(school_data) #  # 7, 3 (only 7 stations)
+
+# write the data (New Data6)
+write.csv(school_data,"NewData/SchoolCnt.csv", row.names = F)
 
 ## 7.Weather -------------------------------------------------------------------------------------------------
 
 # read the data (Raw Data4)
 library(rjson)
-weather_json <- fromJSON(file = "Weather/C-B0024-002.json")
+weather_json <- fromJSON(file = "RawData4/C-B0024-002.json")
 weather_location <- weather_json[["cwaopendata"]][["resources"]][["resource"]][["data"]][["surfaceObs"]][["location"]]
 
 # check station's info
@@ -284,21 +295,21 @@ write.csv(weather_data,"NewData/Weather.csv", row.names = F)
 ## 8.Air Quality ---------------------------------------------------------------------------------------------
 
 # read the data (Raw Data5)
-air_csv <- read.csv("AirQuality/空氣品質指標(AQI)(歷史資料) (2023-04).csv")
+air_csv <- read.csv("RawData5/空氣品質指標(AQI)(歷史資料) (2023-04).csv")
 for(m in 5:12){
   if(m < 10){
-    air_csv <- rbind(air_csv, read.csv(paste0("AirQuality/空氣品質指標(AQI)(歷史資料) (2023-0",m,").csv")))
+    air_csv <- rbind(air_csv, read.csv(paste0("RawData5/空氣品質指標(AQI)(歷史資料) (2023-0",m,").csv")))
   }
   else{
-    air_csv <- rbind(air_csv, read.csv(paste0("AirQuality/空氣品質指標(AQI)(歷史資料) (2023-",m,").csv")))
+    air_csv <- rbind(air_csv, read.csv(paste0("RawData5/空氣品質指標(AQI)(歷史資料) (2023-",m,").csv")))
   }
 }
 for(m in 1:3){
   if(m < 10){
-    air_csv <- rbind(air_csv, read.csv(paste0("AirQuality/空氣品質指標(AQI)(歷史資料) (2024-0",m,").csv")))
+    air_csv <- rbind(air_csv, read.csv(paste0("RawData5/空氣品質指標(AQI)(歷史資料) (2024-0",m,").csv")))
   }
   else{
-    air_csv <- rbind(air_csv, read.csv(paste0("AirQuality/空氣品質指標(AQI)(歷史資料) (2024-",m,").csv")))
+    air_csv <- rbind(air_csv, read.csv(paste0("RawData/空氣品質指標(AQI)(歷史資料) (2024-",m,").csv")))
   }
 }
 head(air_csv)
