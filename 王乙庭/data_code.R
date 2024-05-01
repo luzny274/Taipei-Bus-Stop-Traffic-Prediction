@@ -1,12 +1,51 @@
 ### Data Precprocessing
 
+## read and integrate data
+MetroFlow <- read.csv("NewData/MetroFlow.csv"); head(MetroFlow)
+MetroDist <- read.csv("NewData/MetroDist.csv"); head(MetroDist)
+BusCnt <- read.csv("NewData/BusCnt.csv"); head(BusCnt)
+YoubikeCnt <- read.csv("NewData/YoubikeCnt.csv"); head(YoubikeCnt)
+YoubikeFlow <- read.csv("NewData/YoubikeFlow.csv"); head(YoubikeFlow)
+SchoolCnt <- read.csv("NewData/SchoolCnt.csv"); head(SchoolCnt)
+Weather <- read.csv("NewData/Weather.csv"); head(Weather)
+AirQuality <- read.csv("NewData/AirQuality.csv"); head(AirQuality)
+
+# station features
+station <- merge(merge(merge(merge(MetroDist,BusCnt),YoubikeCnt),YoubikeFlow),SchoolCnt)
+
+# environment data
+env <- merge(Weather,AirQuality)
+
+# merge
+FinalData <- merge(merge(MetroFlow,station),env)
+
+# time
+library(lubridate)
+date <- substr(as.character(FinalData$datetime),1,10)
+time <- substr(as.character(FinalData$datetime),12,19)
+week <- strftime(parse_date_time(date, orders = "Ymd"), format = "%A")
+hour <- hour(parse_date_time(time, orders = "HMS"))
+
+FinalData$hour <- hour
+FinalData$day <- "Weekday"
+FinalData$day[week == "Saturday" | week == "Sunday"] <- "Weekend"
+
+# final data
+FinalData <- FinalData[,c(1:3,31:32,4:30)]
+head(FinalData)
+tail(FinalData)
+dim(FinalData) # 4137, 32 (only 2023/11 first)
+
+# write the data (Final Data)
+write.csv(FinalData,"NewData/FinalData.csv", row.names = F)
+
 ## 1.MetroFlow -----------------------------------------------------------------------------------------------
 
 # read the data (Raw Data1)
-library("data.table")
+library(data.table)
 data_info <- read.csv("RawData1/臺北捷運每日分時各站OD流量統計資料.csv")
 head(data_info)
-flow_ym <- data_info[which(data_info[,2] == "202403"):which(data_info[,2] == "202403"),][,2]
+flow_ym <- data_info[which(data_info[,2] == "202311"):which(data_info[,2] == "202311"),][,2]
 #flow_url <- data_info[which(data_info[,2] == "202403"):which(data_info[,2] == "202403"),]$URL
 
 ym <- flow_ym[1]
@@ -106,7 +145,40 @@ dim(station_data) # 7, 3 (2 vars) (only 7 stations)
 
 # calculate distances
 
-# not finished yet
+library(geosphere)
+
+mrt_list <- read.table("RawData8/MRT_station.txt", header = TRUE, sep = ",")
+mrt_target <- c("北投", "大橋頭", "松山", "古亭", "北門", "中山", "士林")
+
+mrt_station <- mrt_list[mrt_list$station_name_tw %in% mrt_target,c(1,3,8,9)] #& mrt_list$station_code %in% mrt_target_code
+mrt_list <- mrt_list[,c(3,8,9)]
+
+# the closet distance of the MRT nearby
+mrt_station <- mrt_station[-c(6,8),]
+next_distance <- array(dim = c(7,1))
+for(i in 1:nrow(mrt_station)){
+  x <- mrt_station[i,4]
+  y <- mrt_station[i,3]
+  min_d = 1000000000
+  for(j in 1:nrow(mrt_list)){
+    x1 <- unlist(mrt_list[j,3])
+    y1 <- unlist(mrt_list[j,2])
+    d = distm(c(x1, y1), c(x, y), fun = distGeo)
+    if(d < min_d & d != 0){
+      next_distance[i] <- d[1]
+      min_d = d[1]
+    }
+  }
+}
+
+station_data <- data.frame(mrt_station$station_name_tw, next_distance)
+colnames(station_data) <- c("metro_station","next_dist")
+
+# final metro distance data
+station_data
+
+# write the data (New Data2)
+write.csv(station_data,"NewData/MetroDist.csv", row.names = F)
 
 ## 3.BusCnt (option1) ----------------------------------------------------------------------------------------
 
@@ -151,7 +223,33 @@ write.csv(bus_data,"NewData/BusCnt.csv", row.names = F)
 
 ## 3.BusCnt (option2) ----------------------------------------------------------------------------------------
 
-# not finished yet
+library(dplyr)
+library(rjson)
+library(geosphere)
+
+bus_list <- read.table("RawData3/車站出口公車資訊.csv", header = TRUE, sep = ",", fileEncoding="big5")
+mrt_list <- read.table("RawData8/MRT_station.txt", header = TRUE, sep = ",")
+mrt_target <- c("北投", "大橋頭", "松山", "古亭", "北門", "中山", "士林")
+k <- substr(bus_list[1,2], ",*", "_")
+
+mrt_station <- mrt_list[mrt_list$station_name_tw %in% mrt_target,c(1,3,8,9)] #& mrt_list$station_code %in% mrt_target_code
+mrt_list <- mrt_list[,c(3,8,9)]
+
+bus_list <- bus_list %>% mutate("station_code"=sub("_.*","", bus_list[,2]))
+bus_list <- bus_list %>% mutate("station_name"=sub(".*_","", bus_list[,2]))
+bus_list <- bus_list[-2]
+bus_list <- bus_list[bus_list$station_name %in% mrt_target,]
+
+# the number of bus route nearby the MRT station 
+bus_route_list <- aggregate(data=bus_list, 公車名稱~station_name, function(x) length(unique(x)))
+names(bus_route_list)[2] <- "bus_cnt"
+names(bus_route_list)[1] <- "metro_station"
+
+# final bus data
+bus_route_list
+
+# write the data (NewData3)
+write.csv(bus_route_list,"NewData/BusCnt.csv", row.names = F)
 
 ## Revised Data6 ---------------------------------------------------------------------------------------------
 
@@ -159,6 +257,7 @@ write.csv(bus_data,"NewData/BusCnt.csv", row.names = F)
 #bike_csv <- read.csv("YouBike.csv")
 #head(bike_csv)
 
+library(data.table)
 bike_ym <- c("202311")
 ym <- bike_ym[1]
 
@@ -217,12 +316,84 @@ dim(bike_flow_data) #  # 749485, 3 (only 2023/11, all stations)
 write.csv(bike_flow_data,"RevisedData6/202311_youbike.csv", row.names = F)
 
 ## 4.YoubikeCnt ----------------------------------------------------------------------------------------------
-
-# not finished yet
-
 ## 5.YoubikeFlow ---------------------------------------------------------------------------------------------
 
-# not finished yet
+library(rjson)
+library(geosphere)
+
+mrt_list <- read.table("RawData8/MRT_station.txt", header = TRUE, sep = ",")
+mrt_target <- c("北投", "大橋頭", "松山", "古亭", "北門", "中山", "士林")
+
+mrt_station <- mrt_list[mrt_list$station_name_tw %in% mrt_target,c(1,3,8,9)] #& mrt_list$station_code %in% mrt_target_code
+mrt_list <- mrt_list[,c(3,8,9)]
+
+bike_data <- fromJSON(file="RawData7/Youbike.json")
+bike_station <- do.call(rbind, bike_data)
+
+bike_station <- lapply(bike_data, function(x) c(as.vector(x[[4]]),as.vector(x[[5]])))
+bike_station <- do.call(rbind, bike_station)
+bike_station <- as.data.frame(bike_station)
+bike_station$Zh_tw <- sub(".*_","", bike_station$Zh_tw)
+bike_station <- bike_station[-5]
+bike_station <- bike_station[-2]
+
+# You-bike stations in 700m from the MRT (bike_station_list)
+mrt_station <- mrt_station[-c(6,8),]
+bike_station_list <- array(dim = c(7, 35))
+for(i in 1:nrow(mrt_station)){
+  x <- mrt_station[i,4]
+  y <- mrt_station[i,3]
+  c = 1
+  for(j in  1:nrow(bike_station)){
+    x1 <- unlist(bike_station[j,2])
+    y1 <- unlist(bike_station[j,3])
+    d = distm(c(x1, y1), c(x, y), fun = distGeo)
+    if(d < 700){
+      bike_station_list[i,c] <- bike_station[j,1]
+      c = c + 1
+      
+    }
+  }
+}
+bike_station_list
+
+# merge with bike flow data
+bike_csv <- read.csv("RevisedData6/202311_youbike.csv")
+head(bike_csv)
+
+merge_data <- NULL
+for(i in 1:7){
+  station <- bike_csv[bike_csv$bike_station %in% bike_station_list[i,],]
+  station$metro_station <- mrt_station$station_name_tw[i]
+  merge_data <- rbind(merge_data, station)
+}
+head(merge_data)
+tail(merge_data)
+dim(merge_data)
+
+# count bike and flow
+library(dplyr)
+bike_cnt_data <- group_by(merge_data[,-1][!duplicated(merge_data[,-c(1,3)]),], metro_station)%>%
+  summarise(bike_cnt=length(bike_station))
+
+bike_flow_data <- group_by(merge_data, datetime, metro_station)%>%
+  summarise(bike_flow=sum(bike_flow))
+
+# final bike cnt data
+head(bike_cnt_data)
+tail(bike_cnt_data)
+dim(bike_cnt_data)
+
+# write the data (NewData4)
+write.csv(bike_cnt_data,"NewData/YoubikeCnt.csv", row.names = F)
+
+# final bike cnt data
+head(bike_flow_data)
+tail(bike_flow_data)
+dim(bike_flow_data) # 5029, 3
+
+# write the data (NewData5)
+write.csv(bike_flow_data,"NewData/YoubikeFlow.csv", row.names = F)
 
 ## 6.SchoolCnt -----------------------------------------------------------------------------------------------
 
@@ -332,6 +503,11 @@ colnames(air_data)[1] <- "datetime"
 colnames(air_data)[2] <- "metro_station"
 colnames(air_data)
 
+# change station name: 中山、松山、大同（大橋頭）、古亭、萬華（北門）、士林、陽明（北投）
+air_data[air_data$metro_station == "大同",]$metro_station <- "大橋頭"
+air_data[air_data$metro_station == "萬華",]$metro_station <- "北門"
+air_data[air_data$metro_station == "陽明",]$metro_station <- "北投"
+
 # change time format
 air_data$datetime <- as.character(air_data$datetime)
 air_data$datetime <- paste0(air_data$datetime,":00")
@@ -343,7 +519,7 @@ tail(air_data)
 dim(air_data) # 60782, 19 (17 vars, 2023/04-2024/03)
 
 # write the data (New Data8)
-write.csv(flow_data,"NewData/AirQuality.csv", row.names = F)
+write.csv(air_data,"NewData/AirQuality.csv", row.names = F)
 
 ## ------------------------------------------------------------------------------------------------------------------------
 
