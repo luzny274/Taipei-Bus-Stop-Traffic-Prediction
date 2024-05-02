@@ -1,4 +1,4 @@
-"datetime","metro_station","bike_flow"
+"datetime","mrt_station","bike_flow"
 "2023-11-01 00:00:00","中山",81
 "2023-11-01 00:00:00","北投",5
 "2023-11-01 00:00:00","北門",26

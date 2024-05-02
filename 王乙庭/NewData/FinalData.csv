@@ -1,4 +1,4 @@
-"datetime","metro_station","metro_flow","hour","day","next_dist","bus_cnt","bike_cnt","bike_flow","school_cnt","air_pressure","air_temperature","relative_humidity","precipitation","sunshine_duration","aqi","status","so2","co","o3","o3_8hr","pm10","pm2","no2","nox","no","windspeed","winddirec","co_8hr","pm2.1","pm10_avg","so2_avg"
+"datetime","mrt_station","mrt_flow","hour","day","next_dist","bus_cnt","bike_cnt","bike_flow","school_cnt","air_pressure","air_temperature","relative_humidity","precipitation","sunshine_duration","aqi","status","so2","co","o3","o3_8hr","pm10","pm2","no2","nox","no","windspeed","winddirec","co_8hr","pm2.1","pm10_avg","so2_avg"
 "2023-11-01 00:00:00","中山",402,0,"Weekday",567.656880873855,54,23,81,4,1016.4,22.6,90,0,0,27,"良好",0.6,0.27,28.5,20.4,6,6,10.9,12.1,1.1,"1.2","104",0.4,8.4,9,1
 "2023-11-01 00:00:00","北投",128,0,"Weekday",687.457889956981,31,11,5,4,1016.4,22.6,90,0,0,39,"良好",0.5,0.15,43.5,43,2,0,0.7,1.5,0.8,"4.4","180",0.1,3.2,5,0
 "2023-11-01 00:00:00","北門",135,0,"Weekday",512.321365522758,71,13,26,2,1016.4,22.6,90,0,0,25,"良好",0.6,0.26,27.9,23.8,10,4,13.9,14.6,0.7,"1.6","85",0.3,7.6,15,1
