@@ -1,8 +1,8 @@
 ### Data Precprocessing
 
 ## read and integrate data
-MetroFlow <- read.csv("NewData/MetroFlow.csv"); head(MetroFlow)
-MetroDist <- read.csv("NewData/MetroDist.csv"); head(MetroDist)
+MRTFlow <- read.csv("NewData/MRTFlow.csv"); head(MRTFlow)
+MRTDist <- read.csv("NewData/MRTDist.csv"); head(MRTDist)
 BusCnt <- read.csv("NewData/BusCnt.csv"); head(BusCnt)
 YoubikeCnt <- read.csv("NewData/YoubikeCnt.csv"); head(YoubikeCnt)
 YoubikeFlow <- read.csv("NewData/YoubikeFlow.csv"); head(YoubikeFlow)
@@ -11,13 +11,13 @@ Weather <- read.csv("NewData/Weather.csv"); head(Weather)
 AirQuality <- read.csv("NewData/AirQuality.csv"); head(AirQuality)
 
 # station features
-station <- merge(merge(merge(merge(MetroDist,BusCnt),YoubikeCnt),YoubikeFlow),SchoolCnt)
+station <- merge(merge(merge(merge(MRTDist,BusCnt),YoubikeCnt),YoubikeFlow),SchoolCnt)
 
 # environment data
 env <- merge(Weather,AirQuality)
 
 # merge
-FinalData <- merge(merge(MetroFlow,station),env)
+FinalData <- merge(merge(MRTFlow,station),env)
 
 # time
 library(lubridate)
@@ -39,7 +39,7 @@ dim(FinalData) # 4137, 32 (only 2023/11 first)
 # write the data (Final Data)
 write.csv(FinalData,"NewData/FinalData.csv", row.names = F)
 
-## 1.MetroFlow -----------------------------------------------------------------------------------------------
+## 1.MRTFlow -----------------------------------------------------------------------------------------------
 
 # read the data (Raw Data1)
 library(data.table)
@@ -61,38 +61,38 @@ for(ym in flow_ym){
   dim(flow_csv)
   
   # change column names
-  colnames(flow_csv) <- c("date", "hour", "metro_from", "metro_to", "people_cnt")
+  colnames(flow_csv) <- c("date", "hour", "mrt_from", "mrt_to", "people_cnt")
   colnames(flow_csv)
   
   # count total numbers of flows
   library(dplyr)
-  flow_from <- group_by(flow_csv, date, hour, metro_from)%>%
-    summarise(metro_flow=sum(people_cnt))
-  colnames(flow_from)[3] <- "metro_station"
+  flow_from <- group_by(flow_csv, date, hour, mrt_from)%>%
+    summarise(mrt_flow=sum(people_cnt))
+  colnames(flow_from)[3] <- "mrt_station"
   head(flow_from)
   dim(flow_from)
   
-  flow_to <- group_by(flow_csv, date, hour, metro_to)%>%
-    summarise(metro_flow=sum(people_cnt))
-  colnames(flow_to)[3] <- "metro_station"
+  flow_to <- group_by(flow_csv, date, hour, mrt_to)%>%
+    summarise(mrt_flow=sum(people_cnt))
+  colnames(flow_to)[3] <- "mrt_station"
   head(flow_to)
   dim(flow_to)
   
-  flow_sum <- group_by(rbind(flow_from,flow_to), date, hour, metro_station)%>%
-    summarise(metro_flow=sum(metro_flow))
+  flow_sum <- group_by(rbind(flow_from,flow_to), date, hour, mrt_station)%>%
+    summarise(mrt_flow=sum(mrt_flow))
   head(flow_sum)
   dim(flow_sum)
   
-  flow_sum$metro_station <- gsub("站", "", flow_sum$metro_station)
+  flow_sum$mrt_station <- gsub("站", "", flow_sum$mrt_station)
   
   # extract 中山、松山、大同（大橋頭）、古亭、萬華（北門）、士林、陽明（北投）
-  flow_month <- flow_sum[flow_sum$metro_station == "中山" |
-                                   flow_sum$metro_station == "松山" |
-                                   flow_sum$metro_station == "大橋頭" |
-                                   flow_sum$metro_station == "古亭" |
-                                   flow_sum$metro_station == "北門" |
-                                   flow_sum$metro_station == "士林" |
-                                   flow_sum$metro_station == "北投", , ]
+  flow_month <- flow_sum[flow_sum$mrt_station == "中山" |
+                                   flow_sum$mrt_station == "松山" |
+                                   flow_sum$mrt_station == "大橋頭" |
+                                   flow_sum$mrt_station == "古亭" |
+                                   flow_sum$mrt_station == "北門" |
+                                   flow_sum$mrt_station == "士林" |
+                                   flow_sum$mrt_station == "北投", , ]
   
   # change time format
   flow_month$hour <- as.character(flow_month$hour)
@@ -116,9 +116,9 @@ tail(flow_data)
 dim(flow_data) # 4557, 3 (1 var: y var) (only 2024/03, 7 stations)
 
 # write the data (New Data1)
-write.csv(flow_data,"NewData/MetroFlow.csv", row.names = F)
+write.csv(flow_data,"NewData/MRTFlow.csv", row.names = F)
 
-## 2.MetroDist ----------------------------------------------------------------------------------------------
+## 2.MRTDist ----------------------------------------------------------------------------------------------
 
 # read the data (Raw Data2)
 station_csv <- read.csv("RawData2/northern-taiwan.csv")
@@ -127,18 +127,18 @@ colnames(station_csv)
 
 # remove columns
 station_info <- station_csv[,c(3,8,9)]
-names(station_info) <- c("metro_station","latitude","longitude")
+names(station_info) <- c("mrt_station","latitude","longitude")
 head(station_info)
 colnames(station_info)
 
 # extract 中山、松山、大同（大橋頭）、古亭、萬華（中山國小）、士林、陽明
-station_data <- station_info[station_info$metro_station == "中山" |
-                               station_info$metro_station == "松山" |
-                               station_info$metro_station == "大橋頭" |
-                               station_info$metro_station == "古亭" |
-                               station_info$metro_station == "北門" |
-                               station_info$metro_station == "士林" |
-                               station_info$metro_station == "北投" , ]
+station_data <- station_info[station_info$mrt_station == "中山" |
+                               station_info$mrt_station == "松山" |
+                               station_info$mrt_station == "大橋頭" |
+                               station_info$mrt_station == "古亭" |
+                               station_info$mrt_station == "北門" |
+                               station_info$mrt_station == "士林" |
+                               station_info$mrt_station == "北投" , ]
 
 head(station_data)
 dim(station_data) # 7, 3 (2 vars) (only 7 stations)
@@ -172,13 +172,13 @@ for(i in 1:nrow(mrt_station)){
 }
 
 station_data <- data.frame(mrt_station$station_name_tw, next_distance)
-colnames(station_data) <- c("metro_station","next_dist")
+colnames(station_data) <- c("mrt_station","next_dist")
 
-# final metro distance data
+# final mrt distance data
 station_data
 
 # write the data (New Data2)
-write.csv(station_data,"NewData/MetroDist.csv", row.names = F)
+write.csv(station_data,"NewData/MRTDist.csv", row.names = F)
 
 ## 3.BusCnt (option1) ----------------------------------------------------------------------------------------
 
@@ -188,7 +188,7 @@ head(bus_csv)
 dim(bus_csv)
 
 # change column names
-colnames(bus_csv) <- c("id", "metro_station", "exit", "bus_cnt")
+colnames(bus_csv) <- c("id", "mrt_station", "exit", "bus_cnt")
 
 # remove duplicates
 bus_csv <- bus_csv[,c(2,4)]
@@ -196,23 +196,23 @@ bus_csv <- bus_csv[!duplicated(bus_csv),]
 dim(bus_csv)
 
 # change station names
-bus_csv$metro_station <- sub(".*_", "", bus_csv$metro_station)
+bus_csv$mrt_station <- sub(".*_", "", bus_csv$mrt_station)
 
 # count numbers of buses
 library(dplyr)
-bus_info <- group_by(bus_csv, metro_station)%>%
+bus_info <- group_by(bus_csv, mrt_station)%>%
   summarise(bus_cnt=length(bus_cnt))
 head(bus_info)
 dim(bus_info)
 
 # extract 中山、松山、大同（大橋頭）、古亭、萬華（北門）、士林、陽明（北投）
-bus_data <- bus_info[bus_info$metro_station == "中山" |
-                     bus_info$metro_station == "松山" |
-                     bus_info$metro_station == "大橋頭" |
-                     bus_info$metro_station == "古亭" |
-                     bus_info$metro_station == "北門" |
-                     bus_info$metro_station == "士林" |
-                     bus_info$metro_station == "北投" , ]
+bus_data <- bus_info[bus_info$mrt_station == "中山" |
+                     bus_info$mrt_station == "松山" |
+                     bus_info$mrt_station == "大橋頭" |
+                     bus_info$mrt_station == "古亭" |
+                     bus_info$mrt_station == "北門" |
+                     bus_info$mrt_station == "士林" |
+                     bus_info$mrt_station == "北投" , ]
 
 # final bus data
 head(bus_data)
@@ -243,7 +243,7 @@ bus_list <- bus_list[bus_list$station_name %in% mrt_target,]
 # the number of bus route nearby the MRT station 
 bus_route_list <- aggregate(data=bus_list, 公車名稱~station_name, function(x) length(unique(x)))
 names(bus_route_list)[2] <- "bus_cnt"
-names(bus_route_list)[1] <- "metro_station"
+names(bus_route_list)[1] <- "mrt_station"
 
 # final bus data
 bus_route_list
@@ -364,7 +364,7 @@ head(bike_csv)
 merge_data <- NULL
 for(i in 1:7){
   station <- bike_csv[bike_csv$bike_station %in% bike_station_list[i,],]
-  station$metro_station <- mrt_station$station_name_tw[i]
+  station$mrt_station <- mrt_station$station_name_tw[i]
   merge_data <- rbind(merge_data, station)
 }
 head(merge_data)
@@ -373,10 +373,10 @@ dim(merge_data)
 
 # count bike and flow
 library(dplyr)
-bike_cnt_data <- group_by(merge_data[,-1][!duplicated(merge_data[,-c(1,3)]),], metro_station)%>%
+bike_cnt_data <- group_by(merge_data[,-1][!duplicated(merge_data[,-c(1,3)]),], mrt_station)%>%
   summarise(bike_cnt=length(bike_station))
 
-bike_flow_data <- group_by(merge_data, datetime, metro_station)%>%
+bike_flow_data <- group_by(merge_data, datetime, mrt_station)%>%
   summarise(bike_flow=sum(bike_flow))
 
 # final bike cnt data
@@ -398,14 +398,14 @@ write.csv(bike_flow_data,"NewData/YoubikeFlow.csv", row.names = F)
 ## 6.SchoolCnt -----------------------------------------------------------------------------------------------
 
 # create the data: 中山: 4; 松山: 2; 大同（大橋頭）: 8; 古亭: 4; 萬華（北門）:2; 士林: 3; 陽明（北投）: 4
-metro_station <- c("中山","北投","北門","古亭","士林","大橋頭","松山")
+mrt_station <- c("中山","北投","北門","古亭","士林","大橋頭","松山")
 school_cnt <- c(4,4,2,4,3,8,2)
-school_data <- data.frame(metro_station, school_cnt)
+school_data <- data.frame(mrt_station, school_cnt)
 
 # final school data
 head(school_data)
 tail(school_data)
-dim(school_data) #  # 7, 3 (only 7 stations)
+dim(school_data) #  # 7, 2 (only 7 stations)
 
 # write the data (New Data6)
 write.csv(school_data,"NewData/SchoolCnt.csv", row.names = F)
@@ -500,13 +500,13 @@ dim(air_data)
 colnames(air_data) <- gsub("X.", "", colnames(air_data))
 colnames(air_data) <- sub("\\..*", "", colnames(air_data))
 colnames(air_data)[1] <- "datetime"
-colnames(air_data)[2] <- "metro_station"
+colnames(air_data)[2] <- "mrt_station"
 colnames(air_data)
 
 # change station name: 中山、松山、大同（大橋頭）、古亭、萬華（北門）、士林、陽明（北投）
-air_data[air_data$metro_station == "大同",]$metro_station <- "大橋頭"
-air_data[air_data$metro_station == "萬華",]$metro_station <- "北門"
-air_data[air_data$metro_station == "陽明",]$metro_station <- "北投"
+air_data[air_data$mrt_station == "大同",]$mrt_station <- "大橋頭"
+air_data[air_data$mrt_station == "萬華",]$mrt_station <- "北門"
+air_data[air_data$mrt_station == "陽明",]$mrt_station <- "北投"
 
 # change time format
 air_data$datetime <- as.character(air_data$datetime)
@@ -549,7 +549,7 @@ names(station_info)
 names(station_info) <- names(unlist(station_json[["features"]][1][1:col_num_]))
 names(station_info) <- gsub("geometry.", "", names(station_info))
 names(station_info) <- gsub("properties.", "", names(station_info))
-names(station_info)[7] <- "metro_station"
+names(station_info)[7] <- "mrt_station"
 names(station_info)
 
 # change column orders
@@ -560,7 +560,7 @@ station_info <- station_info[!duplicated(station_info),]
 dim(station_info)
 
 # change station names
-station_info$metro_station <- gsub("站", "", station_info$metro_station)
+station_info$mrt_station <- gsub("站", "", station_info$mrt_station)
 
 # plot stations
 plot(station_info$coordinates1, station_info$coordinates2)
