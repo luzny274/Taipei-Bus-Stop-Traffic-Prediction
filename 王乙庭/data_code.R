@@ -414,8 +414,14 @@ write.csv(school_data,"NewData/SchoolCnt.csv", row.names = F)
 
 # read the data (Raw Data4)
 library(rjson)
+
+# 2022/6 -2023/5
+weather_json1 <- fromJSON(file = "RawData4//weather.json")
+weather_location1 <- weather_json1[["cwbdata"]][["resources"]][["resource"]][["data"]][["surfaceObs"]][["location"]]
+
+# 2023/4 - 2024/3
 weather_json <- fromJSON(file = "RawData4/C-B0024-002.json")
-weather_location <- weather_json[["cwaopendata"]][["resources"]][["resource"]][["data"]][["surfaceObs"]][["location"]]
+weather_location <- weather_json2[["cwaopendata"]][["resources"]][["resource"]][["data"]][["surfaceObs"]][["location"]]
 
 # check station's info
 for (i in 1:length(weather_location)){
