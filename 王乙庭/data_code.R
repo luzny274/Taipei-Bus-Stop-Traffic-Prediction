@@ -12,9 +12,15 @@ AirQuality <- read.csv("NewData/AirQuality.csv"); head(AirQuality)
 
 # station features
 station <- merge(merge(merge(merge(MRTDist,BusCnt),YoubikeCnt),YoubikeFlow),SchoolCnt)
+head(station)
+tail(station)
+dim(station) # 91375, 7
 
 # environment data
 env <- merge(Weather,AirQuality)
+head(env)
+tail(env)
+dim(env) # 94836, 24
 
 # merge
 FinalData <- merge(merge(MRTFlow,station),env)
@@ -34,7 +40,12 @@ FinalData$day[week == "Saturday" | week == "Sunday"] <- "Weekend"
 FinalData <- FinalData[,c(1:3,31:32,4:30)]
 head(FinalData)
 tail(FinalData)
-dim(FinalData) # 4137, 32 (only 2023/11 first)
+dim(FinalData) # 4137, 32 (only 2023/11 first) # 74802, 32
+
+# check
+library(lubridate)
+date <- substr(as.character(FinalData$datetime),1,10)
+table(date) # 10-21 hrs a day
 
 # write the data (Final Data)
 write.csv(FinalData,"NewData/FinalData.csv", row.names = F)
@@ -45,10 +56,10 @@ write.csv(FinalData,"NewData/FinalData.csv", row.names = F)
 library(data.table)
 data_info <- read.csv("RawData1/臺北捷運每日分時各站OD流量統計資料.csv")
 head(data_info)
-flow_ym <- data_info[which(data_info[,2] == "202311"):which(data_info[,2] == "202311"),][,2]
-#flow_url <- data_info[which(data_info[,2] == "202403"):which(data_info[,2] == "202403"),]$URL
 
-ym <- flow_ym[1]
+flow_ym <- data_info[which(data_info[,2] == "202206"):which(data_info[,2] == "202311"),][,2]
+#flow_url <- data_info[which(data_info[,2] == "202206"):which(data_info[,2] == "20231"),]$URL
+
 #url <- flow_url[1]
 
 flow_data <- NULL
@@ -113,7 +124,12 @@ for(ym in flow_ym){
 # final flow data
 head(flow_data)
 tail(flow_data)
-dim(flow_data) # 4557, 3 (1 var: y var) (only 2024/03, 7 stations)
+dim(flow_data) # 4557, 3 (1 var: y var) (only 2024/03, 7 stations) # 80591, 3 (1.5 2022/6-2023/11)
+
+# check
+library(lubridate)
+date <- substr(as.character(flow_data$datetime),1,10)
+table(date) # 10-21 hrs a day
 
 # write the data (New Data1)
 write.csv(flow_data,"NewData/MRTFlow.csv", row.names = F)
@@ -258,11 +274,14 @@ write.csv(bus_route_list,"NewData/BusCnt.csv", row.names = F)
 #head(bike_csv)
 
 library(data.table)
-bike_ym <- c("202311")
-ym <- bike_ym[1]
+bike_ym <- c("202206","202207","202208","202209","202210","202211",
+             "202212","202301","202302","202303","202304","202305",
+             "202306","202307","202308","202309","202310","202311")
+
+ym <- bike_ym[1:2]
 
 bike_flow_data <- NULL
-#for(ym in bike_ym){
+for(ym in bike_ym){
   #for (url in bike_url){
   
   bike_csv <- fread(paste0("RawData6/",ym,"_YouBike2.0票證刷卡資料.csv"))
@@ -305,12 +324,18 @@ bike_flow_data <- NULL
   
   bike_flow_data <- rbind(bike_flow_data, bike_month)
   
-#}
+}
 
 # final bike flow data
 head(bike_flow_data)
 tail(bike_flow_data)
-dim(bike_flow_data) #  # 749485, 3 (only 2023/11, all stations)
+dim(bike_flow_data) #  # 749485, 3 (only 2023/11, all stations) # 12769645, 3
+
+# check
+library(lubridate)
+date <- substr(as.character(bike_flow_data$datetime),1,10)
+table(date)
+table(bike_flow_data$datetime)
 
 # write the data (Revised Data6)
 write.csv(bike_flow_data,"RevisedData6/202311_youbike.csv", row.names = F)
@@ -358,7 +383,7 @@ for(i in 1:nrow(mrt_station)){
 bike_station_list
 
 # merge with bike flow data
-bike_csv <- read.csv("RevisedData6/202311_youbike.csv")
+bike_csv <- fread("RevisedData6/202311_youbike.csv")
 head(bike_csv)
 
 merge_data <- NULL
@@ -390,7 +415,13 @@ write.csv(bike_cnt_data,"NewData/YoubikeCnt.csv", row.names = F)
 # final bike cnt data
 head(bike_flow_data)
 tail(bike_flow_data)
-dim(bike_flow_data) # 5029, 3
+dim(bike_flow_data) # 5029, 3 # 91375, 3
+
+# check
+library(lubridate)
+date <- substr(as.character(bike_flow_data$datetime),1,10)
+table(date)
+table(bike_flow_data$datetime)
 
 # write the data (NewData5)
 write.csv(bike_flow_data,"NewData/YoubikeFlow.csv", row.names = F)
@@ -416,12 +447,14 @@ write.csv(school_data,"NewData/SchoolCnt.csv", row.names = F)
 library(rjson)
 
 # 2022/6 -2023/5
-weather_json1 <- fromJSON(file = "RawData4//weather.json")
-weather_location1 <- weather_json1[["cwbdata"]][["resources"]][["resource"]][["data"]][["surfaceObs"]][["location"]]
+weather_json <- fromJSON(file = "RawData4//weather.json")
+weather_location <- weather_json[["cwbdata"]][["resources"]][["resource"]][["data"]][["surfaceObs"]][["location"]]
 
 # 2023/4 - 2024/3
 weather_json <- fromJSON(file = "RawData4/C-B0024-002.json")
-weather_location <- weather_json2[["cwaopendata"]][["resources"]][["resource"]][["data"]][["surfaceObs"]][["location"]]
+weather_location <- weather_json[["cwaopendata"]][["resources"]][["resource"]][["data"]][["surfaceObs"]][["location"]]
+
+##
 
 # check station's info
 for (i in 1:length(weather_location)){
@@ -466,34 +499,52 @@ head(weather_data)
 tail(weather_data)
 dim(weather_data) # 8808, 6 (5 vars, 2023/04/19-2024/04/19)
 
+##
+
+weather_data1 <- weather_data
+weather_data2 <- weather_data
+weather_data <- rbind(weather_data1,weather_data2)
+weather_data <- weather_data[!duplicated(weather_data$datetime),]
+
+# final weather data
+head(weather_data)
+tail(weather_data)
+dim(weather_data) # 8808, 6 (5 vars, 2023/04/19-2024/04/19) # 17088, 6 (2022/5-2024/4)
+
 # write the data (New Data7)
 write.csv(weather_data,"NewData/Weather.csv", row.names = F)
 
 ## 8.Air Quality ---------------------------------------------------------------------------------------------
 
 # read the data (Raw Data5)
-air_csv <- read.csv("RawData5/空氣品質指標(AQI)(歷史資料) (2023-04).csv")
-for(m in 5:12){
+air_csv <- read.csv("RawData5/空氣品質指標(AQI)(歷史資料) (2022-06).csv")
+for(m in 7:12){
   if(m < 10){
-    air_csv <- rbind(air_csv, read.csv(paste0("RawData5/空氣品質指標(AQI)(歷史資料) (2023-0",m,").csv")))
+    air_csv <- rbind(air_csv, read.csv(paste0("RawData5/空氣品質指標(AQI)(歷史資料) (2022-0",m,").csv")))
   }
   else{
-    air_csv <- rbind(air_csv, read.csv(paste0("RawData5/空氣品質指標(AQI)(歷史資料) (2023-",m,").csv")))
+    air_csv <- rbind(air_csv, read.csv(paste0("RawData5/空氣品質指標(AQI)(歷史資料) (2022-",m,").csv")))
   }
 }
-for(m in 1:3){
+for(m in 1:11){
   if(m < 10){
-    air_csv <- rbind(air_csv, read.csv(paste0("RawData5/空氣品質指標(AQI)(歷史資料) (2024-0",m,").csv")))
+    d <- read.csv(paste0("RawData5/空氣品質指標(AQI)(歷史資料) (2023-0",m,").csv"))
   }
   else{
-    air_csv <- rbind(air_csv, read.csv(paste0("RawData/空氣品質指標(AQI)(歷史資料) (2024-",m,").csv")))
+    d <- read.csv(paste0("RawData5/空氣品質指標(AQI)(歷史資料) (2023-",m,").csv"))
   }
+  colnames(d) <- gsub("X.", "", colnames(d))
+  colnames(d) <- sub("\\..*", "", colnames(d))
+  colnames(d)[11] <- "pm2.5"
+  colnames(d)[20] <- "pm2.5_avg"
+  air_csv <- rbind(air_csv, d)
 }
 head(air_csv)
+tail(air_csv)
 dim(air_csv)
 
 # extract TAIPEI's data
-air_taipei <- air_csv[air_csv$X.county. == "臺北市",]
+air_taipei <- air_csv[air_csv$county == "臺北市",]
 head(air_taipei)
 dim(air_taipei)
 
@@ -503,8 +554,6 @@ head(air_data)
 dim(air_data)
 
 # change column names
-colnames(air_data) <- gsub("X.", "", colnames(air_data))
-colnames(air_data) <- sub("\\..*", "", colnames(air_data))
 colnames(air_data)[1] <- "datetime"
 colnames(air_data)[2] <- "mrt_station"
 colnames(air_data)
@@ -522,7 +571,12 @@ air_data$datetime <- as.POSIXct(air_data$datetime, format="%Y-%m-%d %H:%M:%S")
 # final air quality data
 head(air_data)
 tail(air_data)
-dim(air_data) # 60782, 19 (17 vars, 2023/04-2024/03)
+dim(air_data) # 60782, 19 (17 vars, 2023/04-2024/03) # 91315, 19 (2022/6 - 2023/11)
+
+# check
+library(lubridate)
+date <- substr(as.character(air_data$datetime),1,10)
+table(date)
 
 # write the data (New Data8)
 write.csv(air_data,"NewData/AirQuality.csv", row.names = F)
