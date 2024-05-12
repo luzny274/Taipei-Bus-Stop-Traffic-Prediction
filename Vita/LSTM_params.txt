@@ -1,0 +1,1 @@
+{'epochs': 100, 'batch_size': 4, 'lr': 0.0003162277660168381, 'batch_growth': True, 'loss': 'MSE', 'weight_decay': 0, 'dropout_rate': None, 'hidden_size': 512, 'num_layers': 2}
