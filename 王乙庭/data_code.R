@@ -1,13 +1,34 @@
+
+## Check 
+FinalData <- read.csv("FinalData.csv"); head(FinalData); dim(FinalData)
+FinalData2 <- read.csv("FinalData2.csv"); head(FinalData2); dim(FinalData2)
+
+length(unique(FinalData$datetime))
+nrow(unique(cbind(FinalData$datetime,FinalData$mrt_station)))
+
+length(unique(FinalData2$datetime))
+nrow(unique(cbind(FinalData2$datetime,FinalData2$mrt_station)))
+
+library(dplyr)
+check <- group_by(FinalData, datetime)%>%
+  summarise(station_cnt=length(mrt_station))
+check[check$station_cnt > 7,]
+
+check2 <- group_by(FinalData2, datetime)%>%
+  summarise(station_cnt=length(mrt_station))
+check2[check2$station_cnt > 7,]
+
+
 ### Data Precprocessing
 
 ## read and integrate data
-MRTFlow <- read.csv("NewData/MRTFlow.csv"); head(MRTFlow)
+MRTFlow <- read.csv("NewData/MRTFlow2.csv"); head(MRTFlow)
 MRTDist <- read.csv("NewData/MRTDist.csv"); head(MRTDist)
 BusCnt <- read.csv("NewData/BusCnt.csv"); head(BusCnt)
 YoubikeCnt <- read.csv("NewData/YoubikeCnt.csv"); head(YoubikeCnt)
 YoubikeFlow <- read.csv("NewData/YoubikeFlow.csv"); head(YoubikeFlow)
 SchoolCnt <- read.csv("NewData/SchoolCnt.csv"); head(SchoolCnt)
-Weather <- read.csv("NewData/Weather.csv"); head(Weather)
+Weather <- read.csv("NewData/Weather2.csv"); head(Weather)
 AirQuality <- read.csv("NewData/AirQuality.csv"); head(AirQuality)
 
 # station features
@@ -20,27 +41,35 @@ dim(station) # 91375, 7
 env <- merge(Weather,AirQuality)
 head(env)
 tail(env)
-dim(env) # 94836, 24
+dim(env) # 91308, 24
 
 # merge
-FinalData <- merge(merge(MRTFlow,station),env)
+FinalData <- merge(merge(MRTFlow,station,by=c("datetime", "mrt_station")),env,by=c("datetime", "mrt_station"))
 
 # time
 library(lubridate)
 date <- substr(as.character(FinalData$datetime),1,10)
 time <- substr(as.character(FinalData$datetime),12,19)
+month <- month(parse_date_time(date, orders = "Ymd"))
 week <- strftime(parse_date_time(date, orders = "Ymd"), format = "%A")
+day_week <- strftime(parse_date_time(date, orders = "Ymd"), format = "%w")
 hour <- hour(parse_date_time(time, orders = "HMS"))
 
+FinalData$month <- month
+FinalData$day_week <- day_week
 FinalData$hour <- hour
 FinalData$day <- "Weekday"
 FinalData$day[week == "Saturday" | week == "Sunday"] <- "Weekend"
 
+# transfer
+FinalData$transfer <- "N"
+FinalData[FinalData$mrt_station == "中山" | FinalData$mrt_station == "古亭",]$transfer <- "Y"
+
 # final data
-FinalData <- FinalData[,c(1:3,31:32,4:30)]
+FinalData <- FinalData[,c(1:3,33:34,4:30)]
 head(FinalData)
 tail(FinalData)
-dim(FinalData) # 4137, 32 (only 2023/11 first) # 74802, 32
+dim(FinalData) # 4137, 32 (only 2023/11 first) # 74802, 35 # 79754
 
 # check
 library(lubridate)
@@ -48,7 +77,7 @@ date <- substr(as.character(FinalData$datetime),1,10)
 table(date) # 10-21 hrs a day
 
 # write the data (Final Data)
-write.csv(FinalData,"NewData/FinalData.csv", row.names = F)
+write.csv(FinalData,"FinalData2.csv", row.names = F)
 
 ## 1.MRTFlow -----------------------------------------------------------------------------------------------
 
@@ -65,7 +94,7 @@ flow_ym <- data_info[which(data_info[,2] == "202206"):which(data_info[,2] == "20
 flow_data <- NULL
 for(ym in flow_ym){
   #for (url in flow_url){
-  
+
   flow_csv <- fread(paste0("RawData1/臺北捷運每日分時各站OD流量統計資料_",ym,".csv"))
   # flow_csv <- fread(url)
   head(flow_csv)
@@ -106,8 +135,8 @@ for(ym in flow_ym){
                                    flow_sum$mrt_station == "北投", , ]
   
   # change time format
-  flow_month$hour <- as.character(flow_month$hour)
-  flow_month$hour[flow_month$hour < 10] <- paste0("0",flow_month$hour)
+  #flow_month$hour <- as.character(flow_month$hour)
+  #flow_month$hour[flow_month$hour < 10] <- paste0("0",flow_month$hour)
   flow_month$datetime <- paste0(paste(flow_month$date, flow_month$hour, sep=" "),":00:00")
   flow_month$datetime <- as.POSIXct(flow_month$datetime, format="%Y-%m-%d %H:%M:%S")
   flow_month <- flow_month[,c(5,3,4)]
@@ -450,11 +479,19 @@ library(rjson)
 weather_json <- fromJSON(file = "RawData4//weather.json")
 weather_location <- weather_json[["cwbdata"]][["resources"]][["resource"]][["data"]][["surfaceObs"]][["location"]]
 
+# check station's info
+for (i in 1:length(weather_location)){
+  print(i); print(weather_location[[i]][["station"]])
+} 
+# -> New Taipei: 2, TAMSUI: 3, TAIPEI: 5
+
+# extract TAIPEI's data
+weather_taipei <- weather_location[[5]][["stationObsTimes"]][["stationObsTime"]]
+#weather_taipei[[1]]["datetime"]; weather_taipei[[1]][["weatherElements"]] # check
+
 # 2023/4 - 2024/3
 weather_json <- fromJSON(file = "RawData4/C-B0024-002.json")
 weather_location <- weather_json[["cwaopendata"]][["resources"]][["resource"]][["data"]][["surfaceObs"]][["location"]]
-
-##
 
 # check station's info
 for (i in 1:length(weather_location)){
@@ -465,6 +502,8 @@ for (i in 1:length(weather_location)){
 # extract TAIPEI's data
 weather_taipei <- weather_location[[4]][["stationObsTimes"]][["stationObsTime"]]
 #weather_taipei[[1]]["datetime"]; weather_taipei[[1]][["weatherElements"]] # check
+
+##
 
 # fill null value with 0
 for (i in 1:length(weather_taipei)){
@@ -504,7 +543,7 @@ dim(weather_data) # 8808, 6 (5 vars, 2023/04/19-2024/04/19)
 weather_data1 <- weather_data
 weather_data2 <- weather_data
 weather_data <- rbind(weather_data1,weather_data2)
-weather_data <- weather_data[!duplicated(weather_data$datetime),]
+weather_data <- weather_data[!duplicated(weather_data),]
 
 # final weather data
 head(weather_data)
@@ -512,7 +551,7 @@ tail(weather_data)
 dim(weather_data) # 8808, 6 (5 vars, 2023/04/19-2024/04/19) # 17088, 6 (2022/5-2024/4)
 
 # write the data (New Data7)
-write.csv(weather_data,"NewData/Weather.csv", row.names = F)
+write.csv(weather_data,"NewData/Weather2.csv", row.names = F)
 
 ## 8.Air Quality ---------------------------------------------------------------------------------------------
 
