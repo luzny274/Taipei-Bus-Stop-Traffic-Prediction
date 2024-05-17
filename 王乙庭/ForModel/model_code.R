@@ -53,6 +53,8 @@ for(i in c(5:30,38:142)){
   Test_X[,i] <- (Test_X[,i]-median)/iqr
   Test_X[is.na(Test_X[,i]), i] <- 0
 }
+
+Train_Y_original <- Train_Y; Val_Y_original <- Val_Y; Test_Y_original <- Test_Y
 for(i in c(1:7)){
   Train_Y[,i] <- as.numeric(Train_Y[,i])
   median <- median(Train_Y[,i], na.rm = TRUE); iqr <- IQR(Train_Y[,i], na.rm = TRUE); if(is.na(iqr)){iqr = 1}; if(iqr == 0){iqr = 1}
@@ -84,6 +86,7 @@ while(1){
   i <- i + 7; if (i > cat_id_end){ break }
 }
 Train_Y2 <- reshape(Train_Y, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
+Train_Y2_original <- reshape(Train_Y_original, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
 
 Val_X2 <- reshape(Val_X[,c(1:(cat_id_start+6))], direction='long', varying=c(cat_id_start:(cat_id_start+6)), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=v_names[1])
 Val_X2 <- Val_X2[,-ncol(Val_X2)]
@@ -95,6 +98,7 @@ while(1){
   i <- i + 7; if (i > cat_id_end){ break }
 }
 Val_Y2 <- reshape(Val_Y, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
+Val_Y2_original <- reshape(Val_Y_original, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
 
 Test_X2 <- reshape(Test_X[,c(1:(cat_id_start+6))], direction='long', varying=c(cat_id_start:(cat_id_start+6)), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=v_names[1])
 Test_X2 <- Test_X2[,-ncol(Test_X2)]
@@ -106,10 +110,11 @@ while(1){
   i <- i + 7; if (i > cat_id_end){ break }
 }
 Test_Y2 <- reshape(Test_Y, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
+Test_Y2_original <- reshape(Test_Y_original, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
 
-Train <- cbind(Train_Y2[,c(1:2)],Train_X2[,c(2:9,11:29)])
-Val <- cbind(Val_Y2[,c(1:2)],Val_X2[,c(2:9,11:29)])
-Test <- cbind(Test_Y2[,c(1:2)],Test_X2[,c(2:9,11:29)])
+original_mrt_flow <- Train_Y2_original[,c(2)]; Train <- cbind(Train_Y2[,c(1:2)],original_mrt_flow,Train_X2[,c(2:9,11:29)])
+original_mrt_flow <- Val_Y2_original[,c(2)]; Val <- cbind(Val_Y2[,c(1:2)],original_mrt_flow,Val_X2[,c(2:9,11:29)])
+original_mrt_flow <- Test_Y2_original[,c(2)]; Test <- cbind(Test_Y2[,c(1:2)],original_mrt_flow,Test_X2[,c(2:9,11:29)])
 
 # check data -------------------------------------------------------------------
 head(Train); summary(Train); dim(Train) # 55335/7 = 7905
@@ -183,11 +188,12 @@ Val <- read.csv("ModelData/Val2_long.csv"); head(Val); dim(Val)
 Test <- read.csv("ModelData/Test2_long.csv"); head(Test); dim(Test)
 
 # categorical var
-for(i in c(3:5)){
+for(i in c(4:6)){
   Train[,i] <- as.character(Train[,i])
   Val[,i] <- as.character(Val[,i])
   Test[,i] <- as.character(Test[,i])
 }
+Train <- Train[,-3]; Val <- Val[,-3]; Test <- Test[,-3]
 summary(Train); summary(Val); summary(Test)
 
 # linear regression with interactions ------------------------------------------
