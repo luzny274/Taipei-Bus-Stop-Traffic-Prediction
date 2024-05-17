@@ -37,7 +37,7 @@ for(i in c(2:4,31:37)){
 }
 
 # numerical var
-for(i in c(6:30,38:142)){
+for(i in c(5:30,38:142)){
   Train_X[,i] <- as.numeric(Train_X[,i])
   median <- median(Train_X[,i], na.rm = TRUE); iqr <- IQR(Train_X[,i], na.rm = TRUE); if(is.na(iqr)){iqr = 1}; if(iqr == 0){iqr = 1}
   Train_X[,i] <- (Train_X[,i]-median)/iqr
@@ -112,9 +112,9 @@ Val <- cbind(Val_Y2[,c(1:2)],Val_X2[,c(2:9,11:29)])
 Test <- cbind(Test_Y2[,c(1:2)],Test_X2[,c(2:9,11:29)])
 
 # check data -------------------------------------------------------------------
-summary(Train); dim(Train) # v2: 55335/7 = 7905
-summary(Val); dim(Val) # v2: 7903/7 = 1129
-summary(Test); dim(Test) # v2: 15813/7 = 2259
+head(Train); summary(Train); dim(Train) # 55335/7 = 7905
+head(Val); summary(Val); dim(Val) # 7903/7 = 1129
+head(Test); summary(Test); dim(Test) # 15813/7 = 2259
 
 #write.csv(Train,"ModelData/Train2_long.csv",row.names = F)
 #write.csv(Val,"ModelData/Val2_long.csv",row.names = F)
@@ -174,7 +174,7 @@ sqrt(mean((y_real-y_pred)^2)) # 0.3081202
 
 ## 2: one y format, all var & station interaction (LR, LASSO, Ridge, DT) -------
 
-# RMSE (testing): 0.2619002, 0.2647687, 0.2587514, 0.3229786 (best: Ridge)
+# RMSE (testing): 0.2609548, 0.2647687, 0.2586306, 0.3229786 (best: Ridge)
 
 # read data --------------------------------------------------------------------
 
@@ -194,18 +194,18 @@ summary(Train); summary(Val); summary(Test)
 lr_model <- lm(mrt_flow~ . * mrt_station, Train)
 #lr_model <- lm(mrt_flow ~ . * mrt_station, rbind(Train,Val))
 summary(lr_model)
-mean(lr_model$residuals^2) # 0.0665063
+mean(lr_model$residuals^2) # 0.06650603
 sqrt(mean(lr_model$residuals^2)) # 0.2578876
 
 y_pred <- predict(lr_model, Val)
 y_real <- Val$mrt_flow
-mean((y_real-y_pred)^2) # 0.1076826
-sqrt(mean((y_real-y_pred)^2)) # 0.3281503
+mean((y_real-y_pred)^2) # 0.1042135
+sqrt(mean((y_real-y_pred)^2)) # 0.3228212
 
 y_pred <- predict(lr_model, Test)
 y_real <- Test$mrt_flow
-mean((y_real-y_pred)^2) # 0.06859172
-sqrt(mean((y_real-y_pred)^2)) # 0.2619002
+mean((y_real-y_pred)^2) # 0.0680974
+sqrt(mean((y_real-y_pred)^2)) # 0.2609548
 cor(y_real[1:length(y_real)],y_pred[1:length(y_pred)])
 
 # lasso with interactions ------------------------------------------------------
@@ -223,14 +223,14 @@ lasso_model <- glmnet(x, y, alpha=0, lambda=lasso_best_lambda)
 x <- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val))[,-1][-(1:nrow(Train)),]
 y_pred <- predict(lasso_model, x)
 y_real <- Val$mrt_flow
-mean((y_real-y_pred)^2) # 0.1034355
-sqrt(mean((y_real-y_pred)^2)) # 0.3216138
+mean((y_real-y_pred)^2) # 0.1019762
+sqrt(mean((y_real-y_pred)^2)) # 0.3193371
 
 x <- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Test))[,-1][-(1:nrow(Train)),]
 #x <- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val,Test))[,-1][-(1:nrow(rbind(Train,Val))),]
 y_pred <- predict(lasso_model, x)
 y_real <- Test$mrt_flow
-mean((y_real-y_pred)^2) # 0.07010245
+mean((y_real-y_pred)^2) # 0.07016843
 sqrt(mean((y_real-y_pred)^2)) # 0.2647687
 cor(y_real[1:length(y_real)],y_pred[1:length(y_pred)])
 
@@ -249,15 +249,15 @@ ridge_model <- glmnet(x, y, alpha=0, lambda=ridge_best_lambda)
 x <- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val))[,-1][-(1:nrow(Train)),]
 y_pred <- predict(ridge_model, x)
 y_real <- Val$mrt_flow
-mean((y_real-y_pred)^2) # 0.1043152
-sqrt(mean((y_real-y_pred)^2)) # 0.3229786
+mean((y_real-y_pred)^2) # 0.1014082
+sqrt(mean((y_real-y_pred)^2)) # 0.3184465
 
 x <- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Test))[,-1][-(1:nrow(Train)),]
 #x <- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val,Test))[,-1][-(1:nrow(rbind(Train,Val))),]
 y_pred <- predict(ridge_model, x)
 y_real <- Test$mrt_flow
-mean((y_real-y_pred)^2) # 0.06695227
-sqrt(mean((y_real-y_pred)^2)) # 0.2587514
+mean((y_real-y_pred)^2) # 0.06688979
+sqrt(mean((y_real-y_pred)^2)) # 0.2586306
 cor(y_real[1:length(y_real)],y_pred[1:length(y_pred)])
 
 # regression tree (decision tree) with interactions ----------------------------
