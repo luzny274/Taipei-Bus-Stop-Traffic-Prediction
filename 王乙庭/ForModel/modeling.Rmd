@@ -4,7 +4,7 @@ output: html_document
 date: 
 ---
 
-#### 1. multiple y format (LR)
+#### 1. Multiple y format (LR)
 
 ```{r 1}
 # read data --------------------------------------------------------------------
@@ -48,7 +48,7 @@ cat("MSE:", mean((y_real-y_pred)^2))
 cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
 ```
 
-#### 2. one y format, "all var & station" interactions (LR, LASSO, Ridge, Decision Tree)
+#### 2. One y format, "all var & station" interactions (LR, LASSO, Ridge, Decision Tree)
 
 ```{r 3}
 # read data --------------------------------------------------------------------
@@ -149,34 +149,9 @@ cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
 cat("Original RMSE:", sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))
 ```
 
-##### 2.4. Regression tree (decision tree) with interactions
+##### 2.4. GLMNET (combine LASSO and Ridge) with interactions
 
 ```{r 7}
-library(rpart)
-dt_model <- rpart(mrt_flow~., Train, cp=0.000005) # choose cp by the performance in val
-#dt_model <- rpart(mrt_flow~.,rbind(Train,Val))
-#summary(dt_model)
-#printcp(dt_model)
-#plotcp(dt_model)
-#dt_model_pruned <- prune(dt_model, cp = 0.000001)
-
-y_pred <- predict(dt_model, Val)
-y_real <- Val$mrt_flow
-cat("MSE:", mean((y_real-y_pred)^2))
-cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
-cat("Original RMSE:", sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))
-
-y_pred <- predict(dt_model, Test)
-#y_pred <- predict(dt_model_pruned, Test)
-y_real <- Test$mrt_flow
-cat("MSE:", mean((y_real-y_pred)^2))
-cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
-cat("Original RMSE:", sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))
-```
-
-##### 2.5. GLMNET (combine LASSO and Ridge) with interactions
-
-```{r 8}
 f <- as.formula(mrt_flow ~ .* mrt_station) # using .*. for all interactions
 y <- Train$mrt_flow
 x <- model.matrix(f, Train)[,-1] # using model.matrix to take advantage of f
@@ -198,6 +173,31 @@ cat("Original RMSE:", sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_te
 x <- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Test))[,-1][-(1:nrow(Train)),]
 #x <- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val,Test))[,-1][-(1:nrow(rbind(Train,Val))),]
 y_pred <- predict(ridge_model, x)
+y_real <- Test$mrt_flow
+cat("MSE:", mean((y_real-y_pred)^2))
+cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
+cat("Original RMSE:", sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))
+```
+
+##### 2.5. Regression tree (decision tree)
+
+```{r 8}
+library(rpart)
+dt_model <- rpart(mrt_flow~., Train, cp=0.000005) # choose cp by the performance in val
+#dt_model <- rpart(mrt_flow~.,rbind(Train,Val))
+#summary(dt_model)
+#printcp(dt_model)
+#plotcp(dt_model)
+#dt_model_pruned <- prune(dt_model, cp = 0.000001)
+
+y_pred <- predict(dt_model, Val)
+y_real <- Val$mrt_flow
+cat("MSE:", mean((y_real-y_pred)^2))
+cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
+cat("Original RMSE:", sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))
+
+y_pred <- predict(dt_model, Test)
+#y_pred <- predict(dt_model_pruned, Test)
 y_real <- Test$mrt_flow
 cat("MSE:", mean((y_real-y_pred)^2))
 cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
