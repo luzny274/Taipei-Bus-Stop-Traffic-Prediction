@@ -187,12 +187,21 @@ Train <- read.csv("ModelData/Train2_long.csv"); head(Train); dim(Train)
 Val <- read.csv("ModelData/Val2_long.csv"); head(Val); dim(Val)
 Test <- read.csv("ModelData/Test2_long.csv"); head(Test); dim(Test)
 
+# temp
+#bike_flow <- append(c(0),Train$bike_flow)
+#Train$bike_flow <- bike_flow[1:(length(bike_flow)-1)]
+#bike_flow <- append(c(0),Val$bike_flow)
+#Val$bike_flow <- bike_flow[1:(length(bike_flow)-1)]
+#bike_flow <- append(c(0),Test$bike_flow)
+#Test$bike_flow <- bike_flow[1:(length(bike_flow)-1)]
+
 # categorical var
 for(i in c(4:6)){
   Train[,i] <- as.character(Train[,i])
   Val[,i] <- as.character(Val[,i])
   Test[,i] <- as.character(Test[,i])
 }
+median_test <- median(Test[,3]); iqr_test <- IQR(Test[,3])
 Train <- Train[,-3]; Val <- Val[,-3]; Test <- Test[,-3]
 summary(Train); summary(Val); summary(Test)
 
@@ -268,21 +277,51 @@ cor(y_real[1:length(y_real)],y_pred[1:length(y_pred)])
 
 # regression tree (decision tree) with interactions ----------------------------
 library(rpart)
-dt_model <- rpart(mrt_flow~.,Train)
+dt_model <- rpart(mrt_flow~., Train, cp=0.000005)
 #dt_model <- rpart(mrt_flow~.,rbind(Train,Val))
 #summary(dt_model)
 #printcp(dt_model)
 #plotcp(dt_model)
-#dt_model_pruned <- prune(dt_model, cp = 0.01)
+#dt_model_pruned <- prune(dt_model, cp = 0.0000001)
 
 y_pred <- predict(dt_model, Val)
 y_real <- Val$mrt_flow
-mean((y_real-y_pred)^2) # 0.1602502
-sqrt(mean((y_real-y_pred)^2)) # 0.4003126
+mean((y_real-y_pred)^2) # 0.05843638
+sqrt(mean((y_real-y_pred)^2)) # 0.2417362
 
 y_pred <- predict(dt_model, Test)
 #y_pred <- predict(dt_model_pruned, Test)
 y_real <- Test$mrt_flow
-mean((y_real-y_pred)^2) # 0.1121006
-sqrt(mean((y_real-y_pred)^2)) # 0.3348142
+mean((y_real-y_pred)^2) # 0.02926891
+sqrt(mean((y_real-y_pred)^2)) # 0.1710816
 cor(y_real[1:length(y_real)],y_pred[1:length(y_pred)])
+
+# GLMNET with interactions -----------------------------------------------------
+
+for (i in seq(0,1,0.05)){
+
+f <- as.formula(mrt_flow ~ .* mrt_station) # using .*. for all interactions
+y <- Train$mrt_flow
+x <- model.matrix(f, Train)[,-1] # using model.matrix to take advantage of f
+#y <- rbind(Train,Val)$mrt_flow
+#x <- model.matrix(f, rbind(Train,Val))[,-1] # using model.matrix to take advantage of f
+
+library(glmnet)
+glmnet_kfold <- cv.glmnet(x, y, alpha=i, nfolds=10)
+glmnet_best_lambda <- glmnet_kfold$lambda.min
+glmnet_model <- glmnet(x, y, alpha=0, lambda=glmnet_best_lambda)
+
+x <- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val))[,-1][-(1:nrow(Train)),]
+y_pred <- predict(glmnet_model, x)
+y_real <- Val$mrt_flow
+mean((y_real-y_pred)^2) # 0.1014082
+cat(i, sqrt(mean((y_real-y_pred)^2)), " ") # 0.3184465
+
+x <- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Test))[,-1][-(1:nrow(Train)),]
+#x <- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val,Test))[,-1][-(1:nrow(rbind(Train,Val))),]
+y_pred <- predict(glmnet_model, x)
+y_real <- Test$mrt_flow
+mean((y_real-y_pred)^2) # 0.06688979
+cat(i, sqrt(mean((y_real-y_pred)^2)), " ") # 0.2586306
+cor(y_real[1:length(y_real)],y_pred[1:length(y_pred)])
+}
