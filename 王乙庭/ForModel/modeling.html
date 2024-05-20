@@ -409,7 +409,18 @@ for(i in c(4:6)){
   Val[,i] &lt;- as.character(Val[,i])
   Test[,i] &lt;- as.character(Test[,i])
 }
-median_test &lt;- median(Test[,3]); iqr_test &lt;- IQR(Test[,3])
+library(dplyr)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>scaling_back &lt;- group_by(Test, mrt_station)%&gt;%
+  summarise(median=median(original_mrt_flow),iqr=IQR(original_mrt_flow))
+Test &lt;- merge(Test,scaling_back)
 Train &lt;- Train[,-3]; Val &lt;- Val[,-3]; Test &lt;- Test[,-3]
 #summary(Train); summary(Val); summary(Test)</code></pre>
 <div id="linear-regression-with-interactions" class="section level5">
@@ -428,18 +439,16 @@ cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
 <pre><code>## MSE: 0.104414</code></pre>
 <pre class="r"><code>cat(&quot;RMSE:&quot;, sqrt(mean((y_real-y_pred)^2)))</code></pre>
 <pre><code>## RMSE: 0.3231316</code></pre>
-<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))</code></pre>
-<pre><code>## Original RMSE: 725.4304</code></pre>
-<pre class="r"><code>y_pred &lt;- predict(lr_model, Test)</code></pre>
-<pre><code>## Warning in predict.lm(lr_model, Test): prediction from a rank-deficient fit may
-## be misleading</code></pre>
+<pre class="r"><code>y_pred &lt;- predict(lr_model, Test[,-c(30:31)])</code></pre>
+<pre><code>## Warning in predict.lm(lr_model, Test[, -c(30:31)]): prediction from a
+## rank-deficient fit may be misleading</code></pre>
 <pre class="r"><code>y_real &lt;- Test$mrt_flow
 cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
 <pre><code>## MSE: 0.06850735</code></pre>
 <pre class="r"><code>cat(&quot;RMSE:&quot;, sqrt(mean((y_real-y_pred)^2)))</code></pre>
 <pre><code>## RMSE: 0.2617391</code></pre>
-<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))</code></pre>
-<pre><code>## Original RMSE: 587.6042</code></pre>
+<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))</code></pre>
+<pre><code>## Original RMSE: 494.7286</code></pre>
 </div>
 <div id="lasso-with-interactions" class="section level5">
 <h5>2.2. LASSO with interactions</h5>
@@ -463,9 +472,7 @@ cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
 <pre><code>## MSE: 0.1019242</code></pre>
 <pre class="r"><code>cat(&quot;RMSE:&quot;, sqrt(mean((y_real-y_pred)^2)))</code></pre>
 <pre><code>## RMSE: 0.3192557</code></pre>
-<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))</code></pre>
-<pre><code>## Original RMSE: 716.729</code></pre>
-<pre class="r"><code>x &lt;- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Test))[,-1][-(1:nrow(Train)),]
+<pre class="r"><code>x &lt;- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Test[,-c(30:31)]))[,-1][-(1:nrow(Train)),]
 #x &lt;- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val,Test))[,-1][-(1:nrow(rbind(Train,Val))),]
 y_pred &lt;- predict(lasso_model, x)
 y_real &lt;- Test$mrt_flow
@@ -473,8 +480,8 @@ cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
 <pre><code>## MSE: 0.07014739</code></pre>
 <pre class="r"><code>cat(&quot;RMSE:&quot;, sqrt(mean((y_real-y_pred)^2)))</code></pre>
 <pre><code>## RMSE: 0.2648535</code></pre>
-<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))</code></pre>
-<pre><code>## Original RMSE: 594.5962</code></pre>
+<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))</code></pre>
+<pre><code>## Original RMSE: 539.6949</code></pre>
 </div>
 <div id="ridge-with-interactions" class="section level5">
 <h5>2.3. Ridge with interactions</h5>
@@ -487,88 +494,99 @@ x &lt;- model.matrix(f, Train)[,-1] # using model.matrix to take advantage of f
 library(glmnet)
 ridge_kfold &lt;- cv.glmnet(x, y, alpha=1, nfolds=10)
 ridge_best_lambda &lt;- ridge_kfold$lambda.min
-ridge_model &lt;- glmnet(x, y, alpha=0, lambda=ridge_best_lambda)
+ridge_model &lt;- glmnet(x, y, alpha=1, lambda=ridge_best_lambda)
 
 x &lt;- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val))[,-1][-(1:nrow(Train)),]
 y_pred &lt;- predict(ridge_model, x)
 y_real &lt;- Val$mrt_flow
 cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
-<pre><code>## MSE: 0.1013714</code></pre>
+<pre><code>## MSE: 0.100222</code></pre>
 <pre class="r"><code>cat(&quot;RMSE:&quot;, sqrt(mean((y_real-y_pred)^2)))</code></pre>
-<pre><code>## RMSE: 0.3183888</code></pre>
-<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))</code></pre>
-<pre><code>## Original RMSE: 714.7828</code></pre>
-<pre class="r"><code>x &lt;- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Test))[,-1][-(1:nrow(Train)),]
+<pre><code>## RMSE: 0.3165786</code></pre>
+<pre class="r"><code>x &lt;- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Test[,-c(30:31)]))[,-1][-(1:nrow(Train)),]
 #x &lt;- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val,Test))[,-1][-(1:nrow(rbind(Train,Val))),]
 y_pred &lt;- predict(ridge_model, x)
 y_real &lt;- Test$mrt_flow
 cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
-<pre><code>## MSE: 0.06688835</code></pre>
+<pre><code>## MSE: 0.06638792</code></pre>
 <pre class="r"><code>cat(&quot;RMSE:&quot;, sqrt(mean((y_real-y_pred)^2)))</code></pre>
-<pre><code>## RMSE: 0.2586278</code></pre>
-<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))</code></pre>
-<pre><code>## Original RMSE: 580.6195</code></pre>
+<pre><code>## RMSE: 0.2576585</code></pre>
+<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))</code></pre>
+<pre><code>## Original RMSE: 481.8453</code></pre>
 </div>
-<div id="glmnet-combine-lasso-and-ridge-with-interactions" class="section level5">
-<h5>2.4. GLMNET (combine LASSO and Ridge) with interactions</h5>
-<pre class="r"><code>f &lt;- as.formula(mrt_flow ~ .* mrt_station) # using .*. for all interactions
-y &lt;- Train$mrt_flow
+<div id="elastic-combine-lasso-and-ridge-with-interactions" class="section level5">
+<h5>2.4. Elastic (combine LASSO and Ridge) with interactions</h5>
+<pre class="r"><code>f &lt;- as.formula(mrt_flow ~ . * mrt_station) # using .*. for all interactions
 x &lt;- model.matrix(f, Train)[,-1] # using model.matrix to take advantage of f
-#y &lt;- rbind(Train,Val)$mrt_flow
-#x &lt;- model.matrix(f, rbind(Train,Val))[,-1] # using model.matrix to take advantage of f
+y &lt;- Train$mrt_flow
 
 library(glmnet)
-ridge_kfold &lt;- cv.glmnet(x, y, alpha=0.05, nfolds=10) # choose alpha by the performance in val
-ridge_best_lambda &lt;- ridge_kfold$lambda.min
-ridge_model &lt;- glmnet(x, y, alpha=0, lambda=ridge_best_lambda)
+set.seed(1)
+elastic_model &lt;- glmnet(x, y, alpha=0.05, lambda=0.01) # choose alpha and beta by the performance in val
 
 x &lt;- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val))[,-1][-(1:nrow(Train)),]
-y_pred &lt;- predict(ridge_model, x)
+y_pred &lt;- predict(elastic_model, x)
 y_real &lt;- Val$mrt_flow
 cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
-<pre><code>## MSE: 0.1012653</code></pre>
+<pre><code>## MSE: 0.09878929</code></pre>
 <pre class="r"><code>cat(&quot;RMSE:&quot;, sqrt(mean((y_real-y_pred)^2)))</code></pre>
-<pre><code>## RMSE: 0.3182221</code></pre>
-<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))</code></pre>
-<pre><code>## Original RMSE: 714.4087</code></pre>
-<pre class="r"><code>x &lt;- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Test))[,-1][-(1:nrow(Train)),]
-#x &lt;- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Val,Test))[,-1][-(1:nrow(rbind(Train,Val))),]
-y_pred &lt;- predict(ridge_model, x)
+<pre><code>## RMSE: 0.3143076</code></pre>
+<pre class="r"><code>x &lt;- model.matrix(mrt_flow ~.*mrt_station, rbind(Train,Test[,-c(30:31)]))[,-1][-(1:nrow(Train)),]
+y_pred &lt;- predict(elastic_model, x)
 y_real &lt;- Test$mrt_flow
 cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
-<pre><code>## MSE: 0.06683383</code></pre>
+<pre><code>## MSE: 0.06627837</code></pre>
 <pre class="r"><code>cat(&quot;RMSE:&quot;, sqrt(mean((y_real-y_pred)^2)))</code></pre>
-<pre><code>## RMSE: 0.2585224</code></pre>
-<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))</code></pre>
-<pre><code>## Original RMSE: 580.3828</code></pre>
+<pre><code>## RMSE: 0.2574459</code></pre>
+<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))</code></pre>
+<pre><code>## Original RMSE: 486.4082</code></pre>
 </div>
 <div id="regression-tree-decision-tree" class="section level5">
 <h5>2.5. Regression tree (decision tree)</h5>
 <pre class="r"><code>library(rpart)
-dt_model &lt;- rpart(mrt_flow~., Train, cp=0.000005) # choose cp by the performance in val
-#dt_model &lt;- rpart(mrt_flow~.,rbind(Train,Val))
+set.seed(1)
+dt_model &lt;- rpart(mrt_flow~., Train, cp=0.000004) # choose cp by the performance in val
 #summary(dt_model)
-#printcp(dt_model)
-#plotcp(dt_model)
-#dt_model_pruned &lt;- prune(dt_model, cp = 0.000001)
-
-y_pred &lt;- predict(dt_model, Val)
+#printcp(dt_model); plotcp(dt_model)
+dt_model$variable.importance</code></pre>
+<pre><code>##         bike_flow              hour previous_mrt_flow                no 
+##       21736.49162       21515.46961       12988.46256        1768.69502 
+##       mrt_station               nox     day_in_a_week               no2 
+##        1704.84437        1648.53914        1245.69957        1163.52528 
+##             month            o3_8hr   air_temperature      air_pressure 
+##         716.73295         522.52496         341.15955         335.46342 
+## relative_humidity                o3            co_8hr                co 
+##         283.58198         256.31721         174.65703         124.11705 
+## sunshine_duration         windspeed         winddirec               aqi 
+##          94.74418          93.77009          93.05271          85.13969 
+##         pm2.5_avg           so2_avg     precipitation          pm10_avg 
+##          48.81502          44.62035          43.77014          42.35497 
+##              pm10               so2             pm2.5            status 
+##          41.24490          24.42436          23.61094          19.64605</code></pre>
+<pre class="r"><code>setdiff((dt_model$frame$var), &quot;&lt;leaf&gt;&quot;) # variables used</code></pre>
+<pre><code>##  [1] &quot;bike_flow&quot;         &quot;hour&quot;              &quot;mrt_station&quot;      
+##  [4] &quot;previous_mrt_flow&quot; &quot;day_in_a_week&quot;     &quot;air_pressure&quot;     
+##  [7] &quot;aqi&quot;               &quot;relative_humidity&quot; &quot;month&quot;            
+## [10] &quot;no2&quot;               &quot;pm2.5&quot;             &quot;pm10&quot;             
+## [13] &quot;no&quot;                &quot;pm10_avg&quot;          &quot;nox&quot;              
+## [16] &quot;o3_8hr&quot;            &quot;winddirec&quot;         &quot;sunshine_duration&quot;
+## [19] &quot;precipitation&quot;     &quot;air_temperature&quot;   &quot;co&quot;               
+## [22] &quot;o3&quot;                &quot;so2&quot;               &quot;windspeed&quot;        
+## [25] &quot;co_8hr&quot;            &quot;so2_avg&quot;           &quot;pm2.5_avg&quot;</code></pre>
+<pre class="r"><code>y_pred &lt;- predict(dt_model, Val)
 y_real &lt;- Val$mrt_flow
 cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
-<pre><code>## MSE: 0.053406</code></pre>
+<pre><code>## MSE: 0.05324942</code></pre>
 <pre class="r"><code>cat(&quot;RMSE:&quot;, sqrt(mean((y_real-y_pred)^2)))</code></pre>
-<pre><code>## RMSE: 0.2310974</code></pre>
-<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))</code></pre>
-<pre><code>## Original RMSE: 518.8136</code></pre>
-<pre class="r"><code>y_pred &lt;- predict(dt_model, Test)
-#y_pred &lt;- predict(dt_model_pruned, Test)
+<pre><code>## RMSE: 0.2307584</code></pre>
+<pre class="r"><code>y_pred &lt;- predict(dt_model, Test[,-c(30:31)])
 y_real &lt;- Test$mrt_flow
 cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
-<pre><code>## MSE: 0.02419636</code></pre>
+<pre><code>## MSE: 0.02402419</code></pre>
 <pre class="r"><code>cat(&quot;RMSE:&quot;, sqrt(mean((y_real-y_pred)^2)))</code></pre>
-<pre><code>## RMSE: 0.1555518</code></pre>
-<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*iqr_test+median_test) - (y_pred*iqr_test+median_test) )^2)))</code></pre>
-<pre><code>## Original RMSE: 349.2138</code></pre>
+<pre><code>## RMSE: 0.1549974</code></pre>
+<pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))</code></pre>
+<pre><code>## Original RMSE: 301.4344</code></pre>
 </div>
 </div>
 
