@@ -1,0 +1,154 @@
+---
+title: 
+output: html_document
+date: 
+---
+
+#### Preprocessing
+
+```{r 1}
+# load the data ----------------------------------------------------------------
+FinalData_reshaped <- read.csv("ModelData/FinalData_reshaped2.csv")[-1,] 
+head(FinalData_reshaped); dim(FinalData_reshaped)
+FinalData_reshaped_Y <- read.csv("ModelData/FinalData_reshaped_Y2.csv") 
+colnames(FinalData_reshaped_Y) <- c("中山_flow","北投_flow","北門_flow","古亭_flow","士林_flow","大橋頭_flow","松山_flow")
+head(FinalData_reshaped_Y); dim(FinalData_reshaped_Y)
+```
+
+```{r 2}
+# remove rows with incomplete Y ------------------------------------------------
+incomplete1 <- which(is.na(FinalData_reshaped_Y))
+incomplete2 <- which(is.na(FinalData_reshaped_Y))+1
+incomplete <- unique(append(incomplete1,incomplete2))
+FinalData_reshaped <- FinalData_reshaped[-incomplete,]
+FinalData_reshaped_Y <- FinalData_reshaped_Y[-incomplete,]
+```
+
+```{r 3}
+# train-val-test splitting -----------------------------------------------------
+sample_cnt <- nrow(FinalData_reshaped)
+train_cnt <- as.integer(sample_cnt*0.7)
+val_cnt <- as.integer(sample_cnt*0.1)
+test_cnt <- sample_cnt-train_cnt-val_cnt
+
+Train_X <- FinalData_reshaped[1:(train_cnt),]
+Val_X <- FinalData_reshaped[(train_cnt+1):(train_cnt+val_cnt),]
+Test_X <- FinalData_reshaped[-(1:(train_cnt+val_cnt)),]
+
+Train_Y <- FinalData_reshaped_Y[1:(train_cnt),]
+Val_Y <- FinalData_reshaped_Y[(train_cnt+1):(train_cnt+val_cnt),]
+Test_Y <- FinalData_reshaped_Y[-(1:(train_cnt+val_cnt)),]
+
+cat("total:", sample_cnt)
+cat("train:", nrow(Train_X), nrow(Train_Y))
+cat("val:", nrow(Train_X), nrow(Train_Y))
+cat("test:", nrow(Train_X), nrow(Train_Y))
+```
+
+```{r 4}
+# robust scaling (r encodes categorical var automatically for some models) -----
+
+# categorical var
+for(i in c(2:4,31:37)){
+  Train_X[,i] <- as.character(Train_X[,i])
+  Val_X[,i] <- as.character(Val_X[,i])
+  Test_X[,i] <- as.character(Test_X[,i])
+}
+
+# numerical var
+for(i in c(5:30,38:142)){
+  Train_X[,i] <- as.numeric(Train_X[,i])
+  median <- median(Train_X[,i], na.rm = TRUE); iqr <- IQR(Train_X[,i], na.rm = TRUE); if(is.na(iqr)){iqr = 1}; if(iqr == 0){iqr = 1}
+  Train_X[,i] <- (Train_X[,i]-median)/iqr
+  Train_X[is.na(Train_X[,i]), i] <- 0
+  
+  Val_X[,i] <- as.numeric(Val_X[,i])
+  median <- median(Val_X[,i], na.rm = TRUE); iqr <- IQR(Val_X[,i], na.rm = TRUE); if(is.na(iqr)){iqr = 1}; if(iqr == 0){iqr = 1}
+  Val_X[,i] <- (Val_X[,i]-median)/iqr
+  Val_X[is.na(Val_X[,i]), i] <- 0
+  
+  Test_X[,i] <- as.numeric(Test_X[,i])
+  median <- median(Test_X[,i], na.rm = TRUE); iqr <- IQR(Test_X[,i], na.rm = TRUE); if(is.na(iqr)){iqr = 1}; if(iqr == 0){iqr = 1}
+  Test_X[,i] <- (Test_X[,i]-median)/iqr
+  Test_X[is.na(Test_X[,i]), i] <- 0
+}
+
+# y var
+Train_Y_original <- Train_Y; Val_Y_original <- Val_Y; Test_Y_original <- Test_Y
+for(i in c(1:7)){
+  Train_Y[,i] <- as.numeric(Train_Y[,i])
+  median <- median(Train_Y[,i], na.rm = TRUE); iqr <- IQR(Train_Y[,i], na.rm = TRUE); if(is.na(iqr)){iqr = 1}; if(iqr == 0){iqr = 1}
+  Train_Y[,i] <- (Train_Y[,i]-median)/iqr
+  Train_Y[is.na(Train_Y[,i]), i] <- 0
+  
+  Val_Y[,i] <- as.numeric(Val_Y[,i])
+  median <- median(Val_Y[,i], na.rm = TRUE); iqr <- IQR(Val_Y[,i], na.rm = TRUE); if(is.na(iqr)){iqr = 1}; if(iqr == 0){iqr = 1}
+  Val_Y[,i] <- (Val_Y[,i]-median)/iqr
+  Val_Y[is.na(Val_Y[,i]), i] <- 0
+  
+  Test_Y[,i] <- as.numeric(Test_Y[,i])
+  median <- median(Test_Y[,i], na.rm = TRUE); iqr <- IQR(Test_Y[,i], na.rm = TRUE); if(is.na(iqr)){iqr = 1}; if(iqr == 0){iqr = 1}
+  Test_Y[,i] <- (Test_Y[,i]-median)/iqr
+  Test_Y[is.na(Test_Y[,i]), i] <- 0
+}
+```
+
+```{r 5}
+# reshape again (some model package in R cannot fit with multiple y) -----------
+cat_id_start <- 10; cat_id_end <- 142
+v_names <- c("previous_mrt_flow","bike_flow","aqi","status","so2","co","o3","o3_8hr","pm10","pm2.5","no2","nox","no","windspeed","winddirec","co_8hr","pm2.5_avg","pm10_avg","so2_avg")
+
+Train_X2 <- reshape(Train_X[,c(1:(cat_id_start+6))], direction='long', varying=c(cat_id_start:(cat_id_start+6)), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=v_names[1])
+Train_X2 <- Train_X2[,-ncol(Train_X2)]
+i <- cat_id_start + 7
+while(1){
+  tmp_reshaped2 <- reshape(Train_X[,c(i:(i+6))], direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=v_names[(i-cat_id_start)/7+1])
+  Train_X2 <- cbind(Train_X2,tmp_reshaped2[,1:2])
+  Train_X2 <- Train_X2[,-(ncol(Train_X2)-1)]
+  i <- i + 7; if (i > cat_id_end){ break }
+}
+Train_Y2 <- reshape(Train_Y, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
+Train_Y2_original <- reshape(Train_Y_original, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
+
+Val_X2 <- reshape(Val_X[,c(1:(cat_id_start+6))], direction='long', varying=c(cat_id_start:(cat_id_start+6)), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=v_names[1])
+Val_X2 <- Val_X2[,-ncol(Val_X2)]
+i <- cat_id_start + 7
+while(1){
+  tmp_reshaped2 <- reshape(Val_X[,c(i:(i+6))], direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=v_names[(i-cat_id_start)/7+1])
+  Val_X2 <- cbind(Val_X2,tmp_reshaped2[,1:2])
+  Val_X2 <- Val_X2[,-(ncol(Val_X2)-1)]
+  i <- i + 7; if (i > cat_id_end){ break }
+}
+Val_Y2 <- reshape(Val_Y, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
+Val_Y2_original <- reshape(Val_Y_original, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
+
+Test_X2 <- reshape(Test_X[,c(1:(cat_id_start+6))], direction='long', varying=c(cat_id_start:(cat_id_start+6)), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=v_names[1])
+Test_X2 <- Test_X2[,-ncol(Test_X2)]
+i <- cat_id_start + 7
+while(1){
+  tmp_reshaped2 <- reshape(Test_X[,c(i:(i+6))], direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=v_names[(i-cat_id_start)/7+1])
+  Test_X2 <- cbind(Test_X2,tmp_reshaped2[,1:2])
+  Test_X2 <- Test_X2[,-(ncol(Test_X2)-1)]
+  i <- i + 7; if (i > cat_id_end){ break }
+}
+Test_Y2 <- reshape(Test_Y, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
+Test_Y2_original <- reshape(Test_Y_original, direction='long', varying=c(1:7), timevar="mrt_station",times=c("中山", "北投", "北門", "古亭", "士林", "大橋頭", "松山"),v.names=c("mrt_flow"))
+
+original_mrt_flow <- Train_Y2_original[,c(2)]; 
+Train <- cbind(Train_Y2[,c(1:2)],original_mrt_flow,Train_X2[,c(2:9,11:29)])
+original_mrt_flow <- Val_Y2_original[,c(2)]; 
+Val <- cbind(Val_Y2[,c(1:2)],original_mrt_flow,Val_X2[,c(2:9,11:29)])
+original_mrt_flow <- Test_Y2_original[,c(2)]; 
+Test <- cbind(Test_Y2[,c(1:2)],original_mrt_flow,Test_X2[,c(2:9,11:29)])
+```
+
+```{r 6}
+# check data -------------------------------------------------------------------
+head(Train); summary(Train); dim(Train); nrow(Train)/7 # 55335/7 = 7905
+head(Val); summary(Val); dim(Val); nrow(Val)/7 # 7903/7 = 1129
+head(Test); summary(Test); dim(Test); nrow(Test)/7 # 15813/7 = 2259
+
+#write.csv(Train,"ModelData/Train2_long.csv",row.names = F)
+#write.csv(Val,"ModelData/Val2_long.csv",row.names = F)
+#write.csv(Test,"ModelData/Test2_long.csv",row.names = F)
+```
