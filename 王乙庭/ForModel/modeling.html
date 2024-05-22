@@ -449,6 +449,8 @@ cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
 <pre><code>## RMSE: 0.2617391</code></pre>
 <pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))</code></pre>
 <pre><code>## Original RMSE: 494.7286</code></pre>
+<pre class="r"><code>cat(&quot;Original MAE:&quot;, mean(abs((y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median))))</code></pre>
+<pre><code>## Original MAE: 314.6577</code></pre>
 </div>
 <div id="lasso-with-interactions" class="section level5">
 <h5>2.2. LASSO with interactions</h5>
@@ -482,6 +484,8 @@ cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
 <pre><code>## RMSE: 0.2648535</code></pre>
 <pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))</code></pre>
 <pre><code>## Original RMSE: 539.6949</code></pre>
+<pre class="r"><code>cat(&quot;Original MAE:&quot;, mean(abs((y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median))))</code></pre>
+<pre><code>## Original MAE: 337.1932</code></pre>
 </div>
 <div id="ridge-with-interactions" class="section level5">
 <h5>2.3. Ridge with interactions</h5>
@@ -513,6 +517,8 @@ cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
 <pre><code>## RMSE: 0.2576585</code></pre>
 <pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))</code></pre>
 <pre><code>## Original RMSE: 481.8453</code></pre>
+<pre class="r"><code>cat(&quot;Original MAE:&quot;, mean(abs((y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median))))</code></pre>
+<pre><code>## Original MAE: 303.8942</code></pre>
 </div>
 <div id="elastic-combine-lasso-and-ridge-with-interactions" class="section level5">
 <h5>2.4. Elastic (combine LASSO and Ridge) with interactions</h5>
@@ -540,6 +546,8 @@ cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
 <pre><code>## RMSE: 0.2574459</code></pre>
 <pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))</code></pre>
 <pre><code>## Original RMSE: 486.4082</code></pre>
+<pre class="r"><code>cat(&quot;Original MAE:&quot;, mean(abs((y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median))))</code></pre>
+<pre><code>## Original MAE: 305.1055</code></pre>
 </div>
 <div id="regression-tree-decision-tree" class="section level5">
 <h5>2.5. Regression tree (decision tree)</h5>
@@ -587,6 +595,8 @@ cat(&quot;MSE:&quot;, mean((y_real-y_pred)^2))</code></pre>
 <pre><code>## RMSE: 0.1549974</code></pre>
 <pre class="r"><code>cat(&quot;Original RMSE:&quot;, sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))</code></pre>
 <pre><code>## Original RMSE: 301.4344</code></pre>
+<pre class="r"><code>cat(&quot;Original MAE:&quot;, mean(abs((y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median))))</code></pre>
+<pre><code>## Original MAE: 175.7418</code></pre>
 </div>
 </div>
 

@@ -89,6 +89,7 @@ y_real <- Test$mrt_flow
 cat("MSE:", mean((y_real-y_pred)^2))
 cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
 cat("Original RMSE:", sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))
+cat("Original MAE:", mean(abs((y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median))))
 ```
 
 ##### 2.2. LASSO with interactions
@@ -118,6 +119,7 @@ y_real <- Test$mrt_flow
 cat("MSE:", mean((y_real-y_pred)^2))
 cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
 cat("Original RMSE:", sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))
+cat("Original MAE:", mean(abs((y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median))))
 ```
 
 ##### 2.3. Ridge with interactions
@@ -147,6 +149,7 @@ y_real <- Test$mrt_flow
 cat("MSE:", mean((y_real-y_pred)^2))
 cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
 cat("Original RMSE:", sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))
+cat("Original MAE:", mean(abs((y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median))))
 ```
 
 ##### 2.4. Elastic (combine LASSO and Ridge) with interactions
@@ -172,6 +175,7 @@ y_real <- Test$mrt_flow
 cat("MSE:", mean((y_real-y_pred)^2))
 cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
 cat("Original RMSE:", sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))
+cat("Original MAE:", mean(abs((y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median))))
 ```
 
 ##### 2.5. Regression tree (decision tree)
@@ -195,4 +199,5 @@ y_real <- Test$mrt_flow
 cat("MSE:", mean((y_real-y_pred)^2))
 cat("RMSE:", sqrt(mean((y_real-y_pred)^2)))
 cat("Original RMSE:", sqrt(mean(( (y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median) )^2)))
+cat("Original MAE:", mean(abs((y_real*Test$iqr+Test$median) - (y_pred*Test$iqr+Test$median))))
 ```
